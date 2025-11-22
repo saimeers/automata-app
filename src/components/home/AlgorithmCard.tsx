@@ -38,7 +38,7 @@ const AlgorithmCard = ({
       className="relative group"
     >
       <div className={`
-        h-full p-6 rounded-2xl border transition-all duration-300
+        h-full p-6 rounded-xl border transition-all duration-300
         ${isAvailable 
           ? 'bg-slate-800/50 border-slate-700 hover:border-slate-600 cursor-pointer hover:scale-105' 
           : 'bg-slate-900/30 border-slate-800 cursor-not-allowed opacity-60'

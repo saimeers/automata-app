@@ -43,7 +43,8 @@ const Home = () => {
       description: "Simula lenguajes libres de contexto con memoria de pila",
       icon: Binary,
       color: "from-orange-500 to-red-500",
-      status: "Próximamente" as const
+      status: "Disponible" as const,
+      onClick: () => navigate('/pda'),
     },
     {
       id: 4,
