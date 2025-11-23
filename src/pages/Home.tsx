@@ -27,7 +27,8 @@ const Home = () => {
       description: "Transforma autómatas finitos no deterministas en deterministas usando construcción de subconjuntos",
       icon: GitBranch,
       color: "from-blue-500 to-cyan-500",
-      status: "Próximamente" as const
+      status: "Disponible" as const,
+      onClick: () => navigate('/afnd-afd')
     },
     {
       id: 2,
@@ -35,7 +36,8 @@ const Home = () => {
       description: "Reduce estados equivalentes usando el algoritmo de partición por subgrupos",
       icon: Layers,
       color: "from-purple-500 to-pink-500",
-      status: "Próximamente" as const
+      status: "Disponible" as const,
+      onClick: () => navigate('/minimizacion'),
     },
     {
       id: 3,

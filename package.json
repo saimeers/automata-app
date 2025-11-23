@@ -26,6 +26,7 @@
     "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.9.6",
     "reactflow": "^11.11.4",
+    "sweetalert2": "^11.26.3",
     "tailwind-merge": "^3.4.0",
     "viz.js": "^2.1.2"
   },
