@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, CheckCircle, X, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, CheckCircle, X, AlertTriangle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 import type { State, Symbol, DFABuilderConfig } from '../../types/dfa.types';
 
 interface DFABuilderProps {
@@ -21,23 +22,64 @@ const DFABuilder: React.FC<DFABuilderProps> = ({ onDFACreated }) => {
     to: 'q0'
   });
 
+  // Verificar si es no determinista
+  const isNonDeterministic = (): boolean => {
+    const transitionMap = new Map<string, number>();
+    
+    for (const t of transitions) {
+      const key = `${t.from}-${t.symbol}`;
+      transitionMap.set(key, (transitionMap.get(key) || 0) + 1);
+    }
+    
+    return Array.from(transitionMap.values()).some(count => count > 1);
+  };
+
   // Validar que no exista ya una transición para el mismo estado y símbolo
   const transitionExists = (from: State, symbol: Symbol): boolean => {
     return transitions.some(t => t.from === from && t.symbol === symbol);
   };
 
-  const handleAddTransition = () => {
-    if (transitionExists(newTransition.from, newTransition.symbol)) {
-      toast.error(
-        `Ya existe una transición desde ${newTransition.from} con el símbolo '${newTransition.symbol}'. ` +
-        `Esto haría el autómata no determinista.`,
-        { duration: 5000 }
-      );
-      return;
-    }
+  // Obtener transiciones faltantes para un estado
+  const getMissingTransitions = (state: State): Symbol[] => {
+    const definedSymbols = transitions
+      .filter(t => t.from === state)
+      .map(t => t.symbol);
+    
+    return alphabet.filter(symbol => !definedSymbols.includes(symbol));
+  };
 
+  // Verificar si el DFA está completo
+  const isCompleteDFA = (): boolean => {
+    for (const state of states) {
+      if (getMissingTransitions(state).length > 0) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Obtener todas las transiciones faltantes
+  const getAllMissingTransitions = (): Array<{ state: State; symbols: Symbol[] }> => {
+    return states
+      .map(state => ({
+        state,
+        symbols: getMissingTransitions(state)
+      }))
+      .filter(item => item.symbols.length > 0);
+  };
+
+  const handleAddTransition = () => {
+    // Permitir múltiples transiciones (NFA)
     setTransitions([...transitions, { ...newTransition }]);
-    toast.success('Transición agregada');
+    
+    if (transitionExists(newTransition.from, newTransition.symbol)) {
+      toast.success('Transición agregada (autómata no determinista)', {
+        icon: '⚠️',
+        duration: 4000
+      });
+    } else {
+      toast.success('Transición agregada');
+    }
   };
 
   const handleDeleteTransition = (index: number) => {
@@ -45,8 +87,9 @@ const DFABuilder: React.FC<DFABuilderProps> = ({ onDFACreated }) => {
     toast.success('Transición eliminada');
   };
 
-  const validateDFA = (): { valid: boolean; errors: string[] } => {
+  const validateDFA = (): { valid: boolean; errors: string[]; warnings: string[] } => {
     const errors: string[] = [];
+    const warnings: string[] = [];
 
     if (states.length === 0) errors.push('Debe haber al menos un estado');
     if (!states.includes(start)) errors.push('El estado inicial no está en la lista de estados');
@@ -56,25 +99,83 @@ const DFABuilder: React.FC<DFABuilderProps> = ({ onDFACreated }) => {
     }
     if (alphabet.length === 0) errors.push('El alfabeto no puede estar vacío');
 
-    // Verificar que todas las transiciones estén definidas (DFA completo)
-    for (const state of states) {
+    // Verificar si es no determinista
+    if (isNonDeterministic()) {
+      warnings.push('⚠️ Autómata No Determinista (AFND) detectado. Se convertirá automáticamente a AFD antes de minimizar.');
+    }
+
+    // Verificar completitud solo si es determinista
+    if (!isNonDeterministic()) {
+      const missingTransitions = getAllMissingTransitions();
+      if (missingTransitions.length > 0) {
+        errors.push('El AFD no está completo. Faltan las siguientes transiciones:');
+        missingTransitions.forEach(({ state, symbols }) => {
+          errors.push(`  • Estado ${state}: símbolos [${symbols.join(', ')}]`);
+        });
+      }
+    }
+
+    // Verificar estados inalcanzables (advertencia, no error)
+    const reachableStates = getReachableStates();
+    const unreachableStates = states.filter(s => !reachableStates.has(s));
+    if (unreachableStates.length > 0) {
+      warnings.push(`Estados inalcanzables (se eliminarán automáticamente): ${unreachableStates.join(', ')}`);
+    }
+
+    return { valid: errors.length === 0, errors, warnings };
+  };
+
+  // Obtener estados alcanzables desde el inicial
+  const getReachableStates = (): Set<State> => {
+    const reachable = new Set<State>();
+    const queue: State[] = [start];
+    reachable.add(start);
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+
       for (const symbol of alphabet) {
-        const hasTransition = transitions.some(t => t.from === state && t.symbol === symbol);
-        if (!hasTransition) {
-          errors.push(`Falta transición: δ(${state}, ${symbol})`);
+        const transition = transitions.find(t => t.from === current && t.symbol === symbol);
+        if (transition && !reachable.has(transition.to)) {
+          reachable.add(transition.to);
+          queue.push(transition.to);
         }
       }
     }
 
-    return { valid: errors.length === 0, errors };
+    return reachable;
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const validation = validateDFA();
 
+    if (validation.warnings.length > 0) {
+      // Mostrar advertencias
+      const warningHtml = validation.warnings.map(w => `<li class="text-left">${w}</li>`).join('');
+      
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Advertencias',
+        html: `<ul class="text-sm">${warningHtml}</ul>`,
+        confirmButtonText: 'Entendido',
+        background: '#1e293b',
+        color: '#fff',
+        confirmButtonColor: '#3b82f6'
+      });
+    }
+
     if (!validation.valid) {
-      validation.errors.forEach(error => {
-        toast.error(error, { duration: 5000 });
+      // Mostrar errores con SweetAlert2
+      const errorHtml = validation.errors.map(e => `<li class="text-left">${e}</li>`).join('');
+      
+      await Swal.fire({
+        icon: 'error',
+        title: 'Errores de Validación',
+        html: `<ul class="text-sm text-red-300">${errorHtml}</ul>`,
+        confirmButtonText: 'Corregir',
+        background: '#1e293b',
+        color: '#fff',
+        confirmButtonColor: '#ef4444'
       });
       return;
     }
@@ -87,45 +188,139 @@ const DFABuilder: React.FC<DFABuilderProps> = ({ onDFACreated }) => {
       transitions
     });
 
-    toast.success('¡DFA creado exitosamente!');
+    if (isNonDeterministic()) {
+      toast.success('¡AFND creado! Se convertirá a AFD y minimizará automáticamente.', {
+        duration: 4000
+      });
+    } else {
+      toast.success('¡AFD creado exitosamente!');
+    }
   };
 
-  const handleAddState = () => {
-    const newState = `q${states.length}`;
-    setStates([...states, newState]);
-    toast.success(`Estado ${newState} agregado`);
+  const handleAddState = async () => {
+    const { value: stateName } = await Swal.fire({
+      title: 'Agregar Estado',
+      input: 'text',
+      inputLabel: 'Nombre del estado',
+      inputValue: `q${states.length}`,
+      showCancelButton: true,
+      confirmButtonText: 'Agregar',
+      cancelButtonText: 'Cancelar',
+      background: '#1e293b',
+      color: '#fff',
+      confirmButtonColor: '#3b82f6',
+      cancelButtonColor: '#64748b',
+      inputValidator: (value) => {
+        if (!value) {
+          return 'El nombre del estado no puede estar vacío';
+        }
+        if (states.includes(value)) {
+          return `El estado "${value}" ya existe`;
+        }
+        if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+          return 'Solo se permiten letras, números y guiones bajos';
+        }
+        return null;
+      }
+    });
+
+    if (stateName) {
+      setStates([...states, stateName]);
+      toast.success(`Estado ${stateName} agregado`);
+    }
   };
 
-  const handleDeleteState = (state: State) => {
+  const handleDeleteState = async (state: State) => {
     if (state === start) {
       toast.error('No puedes eliminar el estado inicial');
       return;
     }
 
-    setStates(states.filter(s => s !== state));
-    setAcceptStates(acceptStates.filter(s => s !== state));
-    setTransitions(transitions.filter(t => t.from !== state && t.to !== state));
-    toast.success(`Estado ${state} eliminado`);
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: `Se eliminará el estado "${state}" y todas sus transiciones`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      background: '#1e293b',
+      color: '#fff'
+    });
+
+    if (result.isConfirmed) {
+      setStates(states.filter(s => s !== state));
+      setAcceptStates(acceptStates.filter(s => s !== state));
+      setTransitions(transitions.filter(t => t.from !== state && t.to !== state));
+      toast.success(`Estado ${state} eliminado`);
+    }
   };
 
-  const addSymbol = () => {
-    const symbol = prompt('Ingresa un nuevo símbolo (un solo carácter):');
-    if (!symbol || symbol.length !== 1) {
-      toast.error('El símbolo debe ser un solo carácter');
-      return;
+  const addSymbol = async () => {
+    const { value: symbol } = await Swal.fire({
+      title: 'Agregar Símbolo al Alfabeto',
+      input: 'text',
+      inputLabel: 'Ingresa un símbolo (un solo carácter)',
+      inputPlaceholder: 'Ej: a, 0, #',
+      showCancelButton: true,
+      confirmButtonText: 'Agregar',
+      cancelButtonText: 'Cancelar',
+      background: '#1e293b',
+      color: '#fff',
+      confirmButtonColor: '#9333ea',
+      cancelButtonColor: '#64748b',
+      inputAttributes: {
+        maxlength: '1',
+        autocapitalize: 'off',
+        autocorrect: 'off'
+      },
+      inputValidator: (value) => {
+        if (!value) {
+          return 'El símbolo no puede estar vacío';
+        }
+        if (value.length !== 1) {
+          return 'El símbolo debe ser un solo carácter';
+        }
+        if (alphabet.includes(value)) {
+          return `El símbolo "${value}" ya existe en el alfabeto`;
+        }
+        if (value === ' ') {
+          return 'No se permiten espacios';
+        }
+        return null;
+      }
+    });
+
+    if (symbol) {
+      setAlphabet([...alphabet, symbol]);
+      toast.success(`Símbolo "${symbol}" agregado al alfabeto`);
     }
-    if (alphabet.includes(symbol)) {
-      toast.error(`El símbolo '${symbol}' ya existe`);
-      return;
-    }
-    setAlphabet([...alphabet, symbol]);
-    toast.success(`Símbolo '${symbol}' agregado`);
   };
 
-  const removeSymbol = (symbol: Symbol) => {
+  const removeSymbol = async (symbol: Symbol) => {
+    const transitionsWithSymbol = transitions.filter(t => t.symbol === symbol);
+    
+    if (transitionsWithSymbol.length > 0) {
+      const result = await Swal.fire({
+        title: '¿Estás seguro?',
+        html: `Se eliminará el símbolo "<strong>${symbol}</strong>" y <strong>${transitionsWithSymbol.length}</strong> transición(es) asociada(s)`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        background: '#1e293b',
+        color: '#fff'
+      });
+
+      if (!result.isConfirmed) return;
+    }
+
     setAlphabet(alphabet.filter(s => s !== symbol));
     setTransitions(transitions.filter(t => t.symbol !== symbol));
-    toast.success(`Símbolo '${symbol}' eliminado`);
+    toast.success(`Símbolo "${symbol}" eliminado`);
   };
 
   return (
@@ -201,6 +396,11 @@ const DFABuilder: React.FC<DFABuilderProps> = ({ onDFACreated }) => {
             </div>
           ))}
         </div>
+        {alphabet.length === 0 && (
+          <p className="text-slate-400 text-sm mt-2 text-center">
+            No hay símbolos en el alfabeto. Agrega al menos uno.
+          </p>
+        )}
       </motion.div>
 
       {/* Estado Inicial */}
@@ -264,56 +464,78 @@ const DFABuilder: React.FC<DFABuilderProps> = ({ onDFACreated }) => {
         <h3 className="text-white font-semibold mb-4">Función de Transición (δ)</h3>
 
         {/* Advertencia de determinismo */}
-        <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg flex items-start gap-2">
-          <AlertTriangle className="text-yellow-400 flex-shrink-0 mt-0.5" size={18} />
-          <p className="text-yellow-200 text-sm">
-            Solo se permite <strong>una transición</strong> por estado y símbolo. Múltiples transiciones harían el autómata no determinista.
-          </p>
+        <div className={`mb-4 p-3 rounded-lg flex items-start gap-2 ${
+          isNonDeterministic() 
+            ? 'bg-orange-500/10 border border-orange-500/30' 
+            : 'bg-blue-500/10 border border-blue-500/30'
+        }`}>
+          {isNonDeterministic() ? (
+            <>
+              <AlertCircle className="text-orange-400 flex-shrink-0 mt-0.5" size={18} />
+              <div className="text-orange-200 text-sm">
+                <p className="font-semibold mb-1">Autómata No Determinista (AFND)</p>
+                <p>Se permiten <strong>múltiples transiciones</strong> por estado y símbolo. El sistema convertirá automáticamente a AFD antes de minimizar.</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <AlertTriangle className="text-blue-400 flex-shrink-0 mt-0.5" size={18} />
+              <p className="text-blue-200 text-sm">
+                Autómata Determinista (AFD). Solo se permite <strong>una transición</strong> por estado y símbolo.
+              </p>
+            </>
+          )}
         </div>
 
         {/* Formulario */}
-        <div className="space-y-4 mb-6 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-slate-300 text-sm mb-2">Estado Origen</label>
-              <select
-                value={newTransition.from}
-                onChange={e => setNewTransition({ ...newTransition, from: e.target.value })}
-                className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
-              >
-                {states.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+        {states.length > 0 && alphabet.length > 0 ? (
+          <div className="space-y-4 mb-6 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-slate-300 text-sm mb-2">Estado Origen</label>
+                <select
+                  value={newTransition.from}
+                  onChange={e => setNewTransition({ ...newTransition, from: e.target.value })}
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
+                >
+                  {states.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-slate-300 text-sm mb-2">Símbolo</label>
+                <select
+                  value={newTransition.symbol}
+                  onChange={e => setNewTransition({ ...newTransition, symbol: e.target.value })}
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm font-mono"
+                >
+                  {alphabet.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-slate-300 text-sm mb-2">Estado Destino</label>
+                <select
+                  value={newTransition.to}
+                  onChange={e => setNewTransition({ ...newTransition, to: e.target.value })}
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
+                >
+                  {states.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-slate-300 text-sm mb-2">Símbolo</label>
-              <select
-                value={newTransition.symbol}
-                onChange={e => setNewTransition({ ...newTransition, symbol: e.target.value })}
-                className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm font-mono"
-              >
-                {alphabet.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-slate-300 text-sm mb-2">Estado Destino</label>
-              <select
-                value={newTransition.to}
-                onChange={e => setNewTransition({ ...newTransition, to: e.target.value })}
-                className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
-              >
-                {states.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-          </div>
 
-          <button
-            onClick={handleAddTransition}
-            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-all flex items-center justify-center gap-2 font-semibold"
-          >
-            <Plus size={18} />
-            Agregar Transición
-          </button>
-        </div>
+            <button
+              onClick={handleAddTransition}
+              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-all flex items-center justify-center gap-2 font-semibold"
+            >
+              <Plus size={18} />
+              Agregar Transición
+            </button>
+          </div>
+        ) : (
+          <div className="mb-6 p-4 bg-slate-800/50 rounded-lg border border-slate-700 text-center text-slate-400">
+            Agrega estados y símbolos al alfabeto para definir transiciones
+          </div>
+        )}
 
         {/* Lista de Transiciones */}
         <div className="space-y-2">
@@ -344,6 +566,28 @@ const DFABuilder: React.FC<DFABuilderProps> = ({ onDFACreated }) => {
             <p className="text-slate-400 text-center py-4 text-sm">No hay transiciones agregadas</p>
           )}
         </div>
+
+        {/* Progreso de Transiciones */}
+        {states.length > 0 && alphabet.length > 0 && !isNonDeterministic() && (
+          <div className="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-slate-300 text-sm">Progreso de Transiciones (AFD)</span>
+              <span className="text-slate-400 text-sm font-mono">
+                {transitions.length} / {states.length * alphabet.length}
+              </span>
+            </div>
+            <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-blue-500 to-emerald-500"
+                initial={{ width: 0 }}
+                animate={{ 
+                  width: `${(transitions.length / (states.length * alphabet.length)) * 100}%` 
+                }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* Botón Crear */}
@@ -352,10 +596,11 @@ const DFABuilder: React.FC<DFABuilderProps> = ({ onDFACreated }) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
         onClick={handleCreate}
-        className="w-full px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-emerald-500/50 transition-all flex items-center justify-center gap-2"
+        disabled={states.length === 0 || alphabet.length === 0}
+        className="w-full px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-emerald-500/50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
       >
         <CheckCircle size={20} />
-        Crear DFA y Minimizar
+        {isNonDeterministic() ? 'Convertir AFND → AFD y Minimizar' : 'Crear AFD y Minimizar'}
       </motion.button>
     </div>
   );

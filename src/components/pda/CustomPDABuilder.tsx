@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Save, CheckCircle, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 import type { Transition, CustomPDAConfig } from '../../types/pda.types';
 
 interface CustomPDABuilderProps {
@@ -154,26 +155,52 @@ const CustomPDABuilder: React.FC<CustomPDABuilderProps> = ({ onPDACreated }) => 
     });
   };
 
-  const addToAlphabet = (type: 'input' | 'stack', symbol: string) => {
-    if (!symbol.trim()) {
-      toast.error('El símbolo no puede estar vacío');
-      return;
-    }
+  const addToAlphabet = async (type: 'input' | 'stack') => {
+    const { value: symbol } = await Swal.fire({
+      title: type === 'input' ? 'Agregar Símbolo al Alfabeto de Entrada' : 'Agregar Símbolo al Alfabeto de Pila',
+      input: 'text',
+      inputLabel: 'Ingresa un símbolo (un solo carácter)',
+      inputPlaceholder: 'Ej: a, 0, #',
+      showCancelButton: true,
+      confirmButtonText: 'Agregar',
+      cancelButtonText: 'Cancelar',
+      background: '#1e293b',
+      color: '#fff',
+      confirmButtonColor: type === 'input' ? '#9333ea' : '#10b981',
+      cancelButtonColor: '#64748b',
+      inputAttributes: {
+        maxlength: '1',
+        autocapitalize: 'off',
+        autocorrect: 'off'
+      },
+      inputValidator: (value) => {
+        if (!value) {
+          return 'El símbolo no puede estar vacío';
+        }
+        if (value.length !== 1) {
+          return 'El símbolo debe ser un solo carácter';
+        }
+        if (value === ' ') {
+          return 'No se permiten espacios';
+        }
+        if (type === 'input' && inputAlphabet.includes(value)) {
+          return `El símbolo "${value}" ya existe en el alfabeto de entrada`;
+        }
+        if (type === 'stack' && stackAlphabet.includes(value)) {
+          return `El símbolo "${value}" ya existe en el alfabeto de pila`;
+        }
+        return null;
+      }
+    });
 
-    if (type === 'input') {
-      if (inputAlphabet.includes(symbol)) {
-        toast.error(`El símbolo "${symbol}" ya existe`);
-        return;
+    if (symbol) {
+      if (type === 'input') {
+        setInputAlphabet([...inputAlphabet, symbol]);
+        toast.success(`Símbolo "${symbol}" agregado al alfabeto de entrada`);
+      } else {
+        setStackAlphabet([...stackAlphabet, symbol]);
+        toast.success(`Símbolo "${symbol}" agregado al alfabeto de pila`);
       }
-      setInputAlphabet([...inputAlphabet, symbol]);
-      toast.success(`Símbolo "${symbol}" agregado al alfabeto de entrada`);
-    } else {
-      if (stackAlphabet.includes(symbol)) {
-        toast.error(`El símbolo "${symbol}" ya existe`);
-        return;
-      }
-      setStackAlphabet([...stackAlphabet, symbol]);
-      toast.success(`Símbolo "${symbol}" agregado al alfabeto de pila`);
     }
   };
 
@@ -332,10 +359,7 @@ const CustomPDABuilder: React.FC<CustomPDABuilderProps> = ({ onPDACreated }) => 
             </div>
           ))}
           <button
-            onClick={() => {
-              const symbol = prompt('Ingresa un nuevo símbolo (un solo carácter):');
-              if (symbol) addToAlphabet('input', symbol.trim());
-            }}
+            onClick={() => addToAlphabet('input')}
             className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-all flex items-center gap-1 text-sm"
           >
             <Plus size={16} />
@@ -379,10 +403,7 @@ const CustomPDABuilder: React.FC<CustomPDABuilderProps> = ({ onPDACreated }) => 
             </div>
           ))}
           <button
-            onClick={() => {
-              const symbol = prompt('Ingresa un nuevo símbolo de pila (un solo carácter):');
-              if (symbol) addToAlphabet('stack', symbol.trim());
-            }}
+            onClick={() => addToAlphabet('stack')}
             className="px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition-all flex items-center gap-1 text-sm"
           >
             <Plus size={16} />

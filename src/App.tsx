@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import StringValidation from './pages/StringValidation'
 import PDASimulator from './pages/PDASimulator'
-import "./types/minimizacion.ts";
 import DFAMinimizer from './pages/DFAMinimizer.tsx';
 
 function App() {

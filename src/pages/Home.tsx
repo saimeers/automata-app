@@ -47,15 +47,6 @@ const Home = () => {
       color: "from-orange-500 to-red-500",
       status: "Disponible" as const,
       onClick: () => navigate('/pda'),
-    },
-    {
-      id: 4,
-      title: "Verificación de Cadenas",
-      description: "Valida si una cadena es aceptada por un AFD con animación paso a paso",
-      icon: Zap,
-      color: "from-green-500 to-emerald-500",
-      status: "Disponible" as const,
-      onClick: () => navigate('/string-validation')
     }
   ];
 
@@ -99,7 +90,7 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {algorithms.map((algo, index) => (
               <AlgorithmCard key={algo.id} {...algo} index={index} />
             ))}
@@ -117,7 +108,7 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="container mx-auto px-6 py-20">
+ {/*      <section className="container mx-auto px-6 py-20">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -144,7 +135,7 @@ const Home = () => {
             </button>
           </div>
         </motion.div>
-      </section>
+      </section> */}
 
       <Footer />
     </div>

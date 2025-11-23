@@ -1,5 +1,14 @@
 import type { DFA, MinimizedDFA, State, Symbol, MinimizationStep } from '../types/dfa.types';
 import { DFAClass } from './DFA';
+import { NFAToDFAConverter, type ConversionStep } from './NFAToDFAConverter';
+
+export interface MinimizationResult {
+  minimized: MinimizedDFA;
+  steps: MinimizationStep[];
+  conversionSteps?: ConversionStep[];
+  wasNFA: boolean;
+  convertedDFA?: DFA;
+}
 
 export class DFAMinimizer {
   private dfa: DFAClass;
@@ -10,10 +19,36 @@ export class DFAMinimizer {
   }
 
   /**
-   * Minimiza el DFA y retorna el resultado con los pasos
+   * Minimiza el DFA (o convierte NFA → DFA → minimizar)
    */
-  minimize(): { minimized: MinimizedDFA; steps: MinimizationStep[] } {
+  minimize(config?: {
+    states: State[];
+    alphabet: Symbol[];
+    start: State;
+    acceptStates: State[];
+    transitions: Array<{ from: State; symbol: Symbol; to: State | State[] }>;
+  }): MinimizationResult {
     this.steps = [];
+    
+    let convertedDFA: DFA | undefined;
+    let conversionSteps: ConversionStep[] | undefined;
+    let wasNFA = false;
+
+    // Si se proporciona config, verificar si es NFA
+    if (config) {
+      const converter = new NFAToDFAConverter(config);
+      const detection = converter.isNonDeterministic();
+      
+      if (detection.isNFA) {
+        wasNFA = true;
+        const result = converter.convert();
+        convertedDFA = result.dfa;
+        conversionSteps = result.steps;
+        
+        // Actualizar el DFA a minimizar
+        this.dfa = new DFAClass(convertedDFA);
+      }
+    }
 
     // Paso 0: Eliminar estados inalcanzables
     const reachable = this.dfa.getReachableStates();
@@ -85,7 +120,13 @@ export class DFAMinimizer {
       partitions: partitions.map(p => new Set(p))
     });
 
-    return { minimized: minimizedDFA, steps: this.steps };
+    return { 
+      minimized: minimizedDFA, 
+      steps: this.steps,
+      conversionSteps,
+      wasNFA,
+      convertedDFA
+    };
   }
 
   /**

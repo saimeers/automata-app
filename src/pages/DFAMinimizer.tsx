@@ -65,9 +65,9 @@ const DFAMinimizer: React.FC = () => {
                     <div className="flex items-center gap-3">
                         <Minimize2 className="text-blue-400" size={32} />
                         <div>
-                            <h1 className="text-3xl font-bold text-white">Minimización de DFA</h1>
+                            <h1 className="text-3xl font-bold text-white">Minimización de AFD</h1>
                             <p className="text-slate-400 text-sm mt-1">
-                                Construye un DFA y obten su forma minimizada equivalente
+                                Construye un AFD y obten su forma minimizada equivalente
                             </p>
                         </div>
                     </div>
@@ -87,7 +87,7 @@ const DFAMinimizer: React.FC = () => {
                             className="grid grid-cols-1 md:grid-cols-3 gap-6"
                         >
                             <div className="bg-slate-900/50 backdrop-blur-sm rounded-xl p-6 border border-slate-800">
-                                <h3 className="text-lg font-semibold text-slate-400 mb-2">DFA Original</h3>
+                                <h3 className="text-lg font-semibold text-slate-400 mb-2">AFD Original</h3>
                                 <p className="text-4xl font-bold text-white">{originalDFA?.states.length}</p>
                                 <p className="text-slate-400 text-sm mt-1">estados</p>
                             </div>
@@ -97,7 +97,7 @@ const DFAMinimizer: React.FC = () => {
                             </div>
 
                             <div className="bg-emerald-500/10 backdrop-blur-sm rounded-xl p-6 border border-emerald-500/50">
-                                <h3 className="text-lg font-semibold text-emerald-400 mb-2">DFA Minimizado</h3>
+                                <h3 className="text-lg font-semibold text-emerald-400 mb-2">AFD Minimizado</h3>
                                 <p className="text-4xl font-bold text-white">{minimizedDFA?.states.length}</p>
                                 <p className="text-emerald-400 text-sm mt-1">
                                     {originalDFA && minimizedDFA &&
@@ -136,7 +136,7 @@ const DFAMinimizer: React.FC = () => {
                             }}
                             className="w-full px-6 py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all"
                         >
-                            Crear Nuevo DFA
+                            Crear Nuevo AFD
                         </button>
                     </>
                 )}
