@@ -22,12 +22,13 @@ const Home = () => {
 
   const algorithms = [
     {
-      id: 1,
-      title: "Conversión AFND → AFD",
-      description: "Transforma autómatas finitos no deterministas en deterministas usando construcción de subconjuntos",
-      icon: GitBranch,
-      color: "from-blue-500 to-cyan-500",
-      status: "Próximamente" as const
+   id: 1,
+    title: "Conversión AFND → AFD",
+    description: "Transforma autómatas finitos no deterministas en deterministas usando construcción de subconjuntos",
+    icon: GitBranch,
+    color: "from-blue-500 to-cyan-500",
+    status: "Disponible" as const,        
+    onClick: () => navigate('/ConversionAFNDtoAFD'),
     },
     {
       id: 2,

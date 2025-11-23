@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import StringValidation from './pages/StringValidation'
 import PDASimulator from './pages/PDASimulator'
+import ConversionAFNDtoAFD from './pages/ConversionAFNDtoAFD';
 
 function App() {
   return (
@@ -10,6 +11,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/string-validation" element={<StringValidation />} />
         <Route path="/pda" element={<PDASimulator />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+         <Route path="/ConversionAFNDtoAFD" element={<ConversionAFNDtoAFD />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
