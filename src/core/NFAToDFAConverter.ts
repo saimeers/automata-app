@@ -34,32 +34,30 @@ export class NFAToDFAConverter {
     this.nfaStart = config.start;
     this.nfaAccept = new Set(config.acceptStates);
     
-    // Convertir transiciones a formato NFA
+    // Convertir transiciones a formato NFA (agrupar múltiples transiciones)
     this.nfaTransitions = {};
+    
+    // Primero agrupar todas las transiciones por estado-símbolo
+    const grouped = new Map<string, State[]>();
+    
     for (const t of config.transitions) {
-      if (!this.nfaTransitions[t.from]) {
-        this.nfaTransitions[t.from] = {};
+      const key = `${t.from}-${t.symbol}`;
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
+      grouped.get(key)!.push(t.to);
+    }
+    
+    // Luego construir el objeto de transiciones
+    for (const [key, targets] of grouped) {
+      const [from, symbol] = key.split('-');
+      
+      if (!this.nfaTransitions[from]) {
+        this.nfaTransitions[from] = {};
       }
       
-      const existing = this.nfaTransitions[t.from][t.symbol];
-      if (existing) {
-        // Ya hay una transición, convertir a array si no lo es
-        if (Array.isArray(existing)) {
-          if (Array.isArray(t.to)) {
-            this.nfaTransitions[t.from][t.symbol] = [...existing, ...t.to];
-          } else {
-            this.nfaTransitions[t.from][t.symbol] = [...existing, t.to];
-          }
-        } else {
-          if (Array.isArray(t.to)) {
-            this.nfaTransitions[t.from][t.symbol] = [existing, ...t.to];
-          } else {
-            this.nfaTransitions[t.from][t.symbol] = [existing, t.to];
-          }
-        }
-      } else {
-        this.nfaTransitions[t.from][t.symbol] = t.to;
-      }
+      // Si hay múltiples destinos, usar array; si solo uno, usar el estado directamente
+      this.nfaTransitions[from][symbol] = targets.length > 1 ? targets : targets[0];
     }
   }
 
@@ -159,12 +157,14 @@ export class NFAToDFAConverter {
             
             this.steps.push({
               stepNumber: stepNumber++,
-              description: `Nuevo estado descubierto con transición δ({${[...currentSet].join(', ')}}, ${symbol})`,
+              description: `Nuevo estado descubierto: δ({${[...currentSet].join(', ')}}, ${symbol}) = {${[...targetSet].join(', ')}}`,
               newState: targetName,
               stateSet: new Set(targetSet)
             });
           }
         }
+        // Si targetSet.size === 0, simplemente no crear la transición
+        // El DFA no será completo, pero el minimizador manejará esto
       }
 
       if (transitions.length > 0) {

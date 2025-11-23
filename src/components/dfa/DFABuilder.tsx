@@ -41,11 +41,13 @@ const DFABuilder: React.FC<DFABuilderProps> = ({ onDFACreated }) => {
 
   // Obtener transiciones faltantes para un estado
   const getMissingTransitions = (state: State): Symbol[] => {
-    const definedSymbols = transitions
-      .filter(t => t.from === state)
-      .map(t => t.symbol);
+    const definedSymbols = new Set(
+      transitions
+        .filter(t => t.from === state)
+        .map(t => t.symbol)
+    );
     
-    return alphabet.filter(symbol => !definedSymbols.includes(symbol));
+    return alphabet.filter(symbol => !definedSymbols.has(symbol));
   };
 
   // Verificar si el DFA está completo
@@ -125,7 +127,7 @@ const DFABuilder: React.FC<DFABuilderProps> = ({ onDFACreated }) => {
     return { valid: errors.length === 0, errors, warnings };
   };
 
-  // Obtener estados alcanzables desde el inicial
+  // Obtener estados alcanzables desde el inicial (soporta AFND)
   const getReachableStates = (): Set<State> => {
     const reachable = new Set<State>();
     const queue: State[] = [start];
@@ -135,10 +137,16 @@ const DFABuilder: React.FC<DFABuilderProps> = ({ onDFACreated }) => {
       const current = queue.shift()!;
 
       for (const symbol of alphabet) {
-        const transition = transitions.find(t => t.from === current && t.symbol === symbol);
-        if (transition && !reachable.has(transition.to)) {
-          reachable.add(transition.to);
-          queue.push(transition.to);
+        // Encontrar TODAS las transiciones (no solo la primera)
+        const matchingTransitions = transitions.filter(
+          t => t.from === current && t.symbol === symbol
+        );
+        
+        for (const transition of matchingTransitions) {
+          if (!reachable.has(transition.to)) {
+            reachable.add(transition.to);
+            queue.push(transition.to);
+          }
         }
       }
     }
