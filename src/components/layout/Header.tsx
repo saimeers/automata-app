@@ -27,10 +27,18 @@ const Header = () => {
             </div>
           </button>
           <div className="flex gap-3">
-            <button className="px-4 py-2 text-slate-300 hover:text-white transition-colors text-sm font-medium">
+            <button 
+            onClick={() =>
+              window.open("https://docs.google.com/document/d/1A6ZYRbuSjGtntfSBmNwId3UEGsII2ro4IP_T3ZHIEFo/edit?usp=sharing", "_blank")
+            }
+            className="px-4 py-2 text-slate-300 hover:text-white transition-colors text-sm font-medium">
               Documentación
             </button>
-            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium">
+            <button 
+            onClick={() =>
+              window.open("https://github.com/saimeers/automata-app", "_blank")
+            }
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium">
               GitHub
             </button>
           </div>

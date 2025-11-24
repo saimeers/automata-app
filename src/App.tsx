@@ -13,7 +13,7 @@ function App() {
         <Route path="/pda" element={<PDASimulator />} />
         <Route path="*" element={<Navigate to="/" replace />} />
          <Route path="/ConversionAFNDtoAFD" element={<ConversionAFNDtoAFD />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+      
       </Routes>
     </div>
   )

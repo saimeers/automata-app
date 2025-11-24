@@ -7,9 +7,20 @@ const Footer = () => {
             © 2025 
           </div>
           <div className="flex gap-6 text-sm text-slate-400">
-            <a href="#" className="hover:text-white transition-colors">GitHub</a>
-            <a href="#" className="hover:text-white transition-colors">Documentación</a>
-            <a href="#" className="hover:text-white transition-colors">Sobre el proyecto</a>
+            <a 
+              href="https://github.com/saimeers/automata-app" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-white transition-colors">
+                GitHub
+            </a>
+            <a  
+                href="https://docs.google.com/document/d/1A6ZYRbuSjGtntfSBmNwId3UEGsII2ro4IP_T3ZHIEFo/edit?usp=sharing"
+                target="_blank"
+                rel="noopener noreferrer" 
+                className="hover:text-white transition-colors">
+                  Documentación
+            </a>
           </div>
         </div>
       </div>

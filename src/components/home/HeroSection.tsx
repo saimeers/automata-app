@@ -8,7 +8,7 @@ interface HeroSectionProps {
 const HeroSection = ({ onStartDemo }: HeroSectionProps) => {
   return (
     <section className="container mx-auto px-6 py-20">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.2 }}
@@ -36,20 +36,6 @@ const HeroSection = ({ onStartDemo }: HeroSectionProps) => {
           Plataforma interactiva para explorar algoritmos fundamentales de la teoría de la computación.
           Visualiza conversiones, minimizaciones y simulaciones en tiempo real.
         </p>
-
-        <div className="flex gap-4 justify-center">
-          <button 
-            onClick={onStartDemo}
-            className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-blue-500/25 transition-all hover:scale-105"
-          >
-            <PlayCircle size={20} />
-            Probar Demo
-            <ArrowRight size={18} />
-          </button>
-          <button className="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold transition-all hover:scale-105">
-            Ver Documentación
-          </button>
-        </div>
       </motion.div>
     </section>
   );
