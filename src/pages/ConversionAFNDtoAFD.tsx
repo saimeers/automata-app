@@ -4,6 +4,8 @@ import { Play, RefreshCw } from 'lucide-react';
 
 import type { ConversionStep, ConversionResult } from '../algorithms/ConversionAFNDtoAFD';
 import { createConverterFromStrings } from '../algorithms/ConversionAFNDtoAFD';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 
 function ConversionAFNDtoAFD() {
   // ------------------------------
@@ -128,7 +130,9 @@ function ConversionAFNDtoAFD() {
   // --------------------------------------------------------------------
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-8">
+          <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+              <Header />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 backdrop-blur-sm to-slate-900 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">🔄 Conversión AFND → AFD</h1>
@@ -235,6 +239,8 @@ function ConversionAFNDtoAFD() {
           </div>
         )}
       </div>
+    </div>
+    <Footer/>
     </div>
   );
 }

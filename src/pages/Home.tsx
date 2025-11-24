@@ -1,10 +1,8 @@
 import { motion } from 'framer-motion';
 import { 
-  
   Binary, 
   GitBranch, 
   Layers, 
-
   BookOpen,
   Code2,
   PlayCircle
