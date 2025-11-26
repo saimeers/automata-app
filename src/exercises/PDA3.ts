@@ -7,7 +7,7 @@ export class PDA3 extends PushdownAutomaton {
   }
 
   private setup() {
-    this.states = new Set(['q0', 'q1', 'q2', 'q3', 'q4', 'qf']);
+    this.states = new Set(['q0', 'q1', 'q2', 'q3', 'q4','q5', 'qf']);
     this.initialState = 'q0';
     this.initialStackSymbols = ['Z', 'Z', 'Z', 'Z'];
     this.stackAlphabet = new Set(['Z', 'X', 'Y', 'B', 'C']);
@@ -31,7 +31,9 @@ export class PDA3 extends PushdownAutomaton {
 
     
     // ACEPTAR si X=Z y Y=Z (no quedan grupos ni 2s)
-    this.addTransition({ from: 'q2', to: 'qf', read: 'ε', pop: ['X', 'Z', 'Z', 'C'], push: ['X', 'Z', 'Z', 'C'] });
+    this.addTransition({ from: 'q2', to: 'q5', read: 'ε', pop: ['X', 'Z', 'Z', 'C'], push: ['ε', 'Z', 'Z', 'ε'] });
+    this.addTransition({ from: 'q5', to: 'q5', read: 'ε', pop: ['X', 'Z', 'Z', 'C'], push: ['ε', 'Z', 'Z', 'ε'] });
+    this.addTransition({ from: 'q5', to: 'qf', read: 'ε', pop: ['Z', 'Z', 'Z', 'Z'], push: ['Z', 'Z', 'Z', 'Z'] });
 
     // ===== SIGUIENTE GRUPO: al leer '1' consumir X, pop B, push C =====
     this.addTransition({ from: 'q2', to: 'q3', read: '1', pop: ['X', 'Z', 'B', 'Z'], push: ['ε', 'Z', 'ε', 'CZ'] });
@@ -53,7 +55,9 @@ export class PDA3 extends PushdownAutomaton {
     this.addTransition({ from: 'q4', to: 'q4', read: '2', pop: ['Z', 'Y', 'Z', 'C'], push: ['Z', 'ε', 'Z', 'C'] });
 
     // ACEPTAR si X=Z y Y=Z
-    this.addTransition({ from: 'q4', to: 'qf', read: 'ε', pop: ['X', 'Z', 'Z', 'C'], push: ['X', 'Z', 'Z', 'C'] });
+    this.addTransition({ from: 'q4', to: 'q5', read: 'ε', pop: ['X', 'Z', 'Z', 'C'], push: ['ε', 'Z', 'Z', 'ε'] });
+    this.addTransition({ from: 'q5', to: 'q5', read: 'ε', pop: ['Z', 'Z', 'Z', 'C'], push: ['Z', 'Z', 'Z', 'ε'] });
+    this.addTransition({ from: 'q5', to: 'qf', read: 'ε', pop: ['Z', 'Z', 'Z', 'Z'], push: ['Z', 'Z', 'Z', 'Z'] });
 
     // ===== SIGUIENTE GRUPO: al leer '1' consumir X, pop C, push B =====
     this.addTransition({ from: 'q4', to: 'q1', read: '1', pop: ['X', 'Z', 'Z', 'C'], push: ['ε', 'Z', 'BZ', 'ε'] });
